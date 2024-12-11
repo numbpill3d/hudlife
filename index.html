@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[CLASSIFIED] - Digital Archive Terminal v2.4.1</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #ffffff;
+            --secondary-color: #ffffff;
+            --bg-color: #000;
+            --text-color: #ffffff;
+            --terminal-white: #ffffff;
+            --accent-color: #f20c18;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glow-color: rgba(255, 255, 255, 0.5);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Courier New', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            line-height: 1.6;
+            perspective: 1000px;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+            padding: 20px;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Floating Sidebar Styles */
+        .sidebar {
+            width: 400px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 20px var(--glow-color);
+            padding: 20px;
+            margin: 20px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            transform: translateZ(50px);
+            transition: all 0.3s ease;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+
+        /* Main Content Area */
+        .content {
+            margin-left: 440px;
+            flex-grow: 1;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 30px var(--glow-color);
+            backdrop-filter: blur(5px);
+            transform: translateZ(30px);
+            position: relative;
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+        }
+
+        /* Floating Containers */
+        .floating-container {
+            position: relative;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 15px var(--glow-color);
+            transform-style: preserve-3d;
+            transition: all 0.3s ease;
+        }
+
+        .floating-container:hover {
+            transform: translateZ(40px);
+            box-shadow: 0 0 25px var(--glow-color);
+        }
+
+        /* Hover Boxes */
+        .hover-box {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid var(--primary-color);
+            padding: 15px;
+            width: 200px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px var(--glow-color);
+        }
+
+        .hover-trigger:hover + .hover-box {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Connection Lines */
+        .connection-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+            height: 1px;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .hover-trigger:hover ~ .connection-line {
+            opacity: 1;
+        }
+
+        /* Widget Styling */
+        .widget {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--primary-color);
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 0 15px var(--glow-color);
+            transform-style: preserve-3d;
+            transition: all 0.3s ease;
+        }
+
+        .widget:hover {
+            transform: translateZ(20px);
+            box-shadow: 0 0 25px var(--glow-color);
+        }
+
+        .widget h3 {
+            color: var(--primary-color);
+            margin: 0 0 15px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--primary-color);
+            padding-bottom: 5px;
+        }
+
+        /* Dream Fragment Styling */
+        .dream-fragment {
+            background: var(--glass-bg);
+            border: 1px solid var(--primary-color);
+            padding: 15px;
+            margin: 10px 0;
+            font-style: italic;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .dream-fragment:hover {
+            transform: translateZ(10px);
+            box-shadow: 0 0 20px var(--glow-color);
+        }
+
+        /* Grid Layout */
+        .index-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            position: relative;
+        }
+
+        .grid-item {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--primary-color);
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .grid-item:hover {
+            transform: translateZ(30px);
+            box-shadow: 0 0 30px var(--glow-color);
+        }
+
+        .grid-item h3 {
+            color: var(--primary-color);
+            margin: 0 0 15px;
+            border-bottom: 1px solid var(--primary-color);
+        }
+
+        /* Links Styling */
+        a {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            display: inline-block;
+        }
+
+        a:hover {
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--glow-color);
+            transform: translateX(5px);
+        }
+
+        /* Terminal Window */
+        .terminal-window {
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid var(--primary-color);
+            margin-bottom: 30px;
+            box-shadow: 0 0 25px var(--glow-color);
+            transform-style: preserve-3d;
+        }
+
+        .terminal-header {
+            border-bottom: 1px solid var(--primary-color);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 1px solid var(--primary-color);
+            padding: 5px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            z-index: 1000;
+            box-shadow: 0 -5px 15px var(--glow-color);
+        }
+
+        /* Animations */
+        @keyframes float {
+            0% { transform: translateY(0px) translateZ(0px); }
+            50% { transform: translateY(-10px) translateZ(20px); }
+            100% { transform: translateY(0px) translateZ(0px); }
+        }
+
+        .floating {
+            animation: float 5s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px var(--glow-color); }
+            50% { box-shadow: 0 0 20px var(--glow-color); }
+            100% { box-shadow: 0 0 5px var(--glow-color); }
+        }
+
+        .glowing {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 300px;
+            }
+            
+            .content {
+                margin-left: 340px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: relative;
+                width: calc(100% - 40px);
+                margin: 20px;
+                max-height: 400px;
+            }
+
+            .content {
+                margin-left: 0;
+                margin-top: 420px;
+            }
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 1px solid var(--primary-color);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            z-index: 1000;
+            box-shadow: 0 5px 15px var(--glow-color);
+        }
+
+        .nav-bar a {
+            margin: 0 10px;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-bar a:hover {
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--glow-color);
+        }
+
+        /* Virtual Pet Container */
+        .virtual-pet-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            transition: all 0.5s ease;
+        }
+
+        /* Virtual Pet */
+        .virtual-pet {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre;
+            color: var(--primary-color);
+            transition: all 0.5s ease;
+        }
+
+        /* HUD Container */
+        .hud-container {
+            position: fixed;
+            top: 60px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        /* HUD Menu */
+        .hud-menu {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--primary-color);
+            padding: 10px;
+            box-shadow: 0 0 15px var(--glow-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .hud-menu-header {
+            color: var(--primary-color);
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--primary-color);
+            padding-bottom: 5px;
+        }
+
+        .hud-menu-content {
+            display: none;
+            padding-top: 10px;
+        }
+
+        .hud-menu:hover .hud-menu-content {
+            display: block;
+        }
+
+        .hud-menu-content ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .hud-menu-content li {
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+
+        /* Profile Container */
+        .profile-container {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        /* Profile Menu */
+        .profile-menu {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--primary-color);
+            padding: 10px;
+            box-shadow: 0 0 15px var(--glow-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .profile-menu-header {
+            color: var(--primary-color);
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--primary-color);
+            padding-bottom: 5px;
+        }
+
+        .profile-menu-content {
+            display: none;
+            padding-top: 10px;
+        }
+
+        .profile-menu:hover .profile-menu-content {
+            display: block;
+        }
+
+        .profile-menu-content ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .profile-menu-content li {
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+
+        /* Secret Popup Container */
+        .secret-popup-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 2000;
+        }
+
+        /* Secret Popup */
+        .secret-popup {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--primary-color);
+            padding: 20px;
+            box-shadow: 0 0 25px var(--glow-color);
+            backdrop-filter: blur(5px);
+            transform: translateZ(30px);
+            position: relative;
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+        }
+
+        .secret-popup-content {
+            color: var(--primary-color);
+        }
+
+        .secret-popup-content h3 {
+            margin: 0 0 15px;
+            border-bottom: 1px solid var(--primary-color);
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="threejs-container"></div>
+    <div class="nav-bar">
+        <a href="#home">Home</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#about">About</a>
+        <a href="#links">Links</a>
+        <a href="#contact">Contact</a>
+        <a href="#portal">Portal</a>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <h2 class="floating">ARCHIVE_TERMINAL</h2>
+            
+            <div class="widget glowing">
+                <h3>System Status</h3>
+                <div id="clock-widget" class="floating">00:00:00</div>
+                <div class="access-code glowing">CLEARANCE_LEVEL: ALPHA</div>
+                <div class="terminal-prompt">
+                    <span id="active-users">Active Users: 23</span>
+                </div>
+            </div>
+
+            <div class="widget">
+                <h3>Dream Fragment Collector</h3>
+                <div id="dream-fragments">
+                    <div class="dream-fragment">Echoes of digital entropy...</div>
+                    <div class="dream-fragment">Binary whispers in void...</div>
+                </div>
+                <button id="add-dream" class="terminal-button glowing">Capture Fragment</button>
+            </div>
+
+            <div class="widget">
+                <h3>Quick Access</h3>
+                <ul>
+                    <li><a href="https://neonmaxima.bigcartel.com" class="hover-trigger">Homeworld</a></li>
+                    <li><a href="https://neural.it/" class="hover-trigger">Neural Interface</a></li>
+                    <li><a href="https://cyberneticzoo.com/" class="hover-trigger">Time Archive</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="terminal-window floating">
+                <div class="terminal-header">
+                    <span class="terminal-title">CLASSIFIED INDEX</span>
+                    <div class="terminal-controls">
+                        <div class="terminal-button"></div>
+                        <div class="terminal-button"></div>
+                        <div class="terminal-button"></div>
+                    </div>
+                </div>
+
+                <div class="floating-container">
+                    <div class="index-grid">
+                        <!-- Grid items with hover boxes -->
+                        <div class="grid-item">
+                            <h3 class="hover-trigger">Cryptographic Tools</h3>
+                            <div class="hover-box" style="right: -220px; top: 0;">
+                                <p>Advanced encryption and decryption tools for secure data handling.</p>
+                            </div>
+                            <ul>
+                                <li><a href="https://gchq.github.io/CyberChef/">CyberChef</a></li>
+                                <li><a href="https://www.slsknet.org/news/node/680">Soulseek Protocol</a></li>
+                                <li><a href="https://github.com/luong-komorebi/Awesome-Linux-Software">Linux Archives</a></li>
+                                <li><a href="https://distrochooser.de/">System Selector</a></li>
+                            </ul>
+                        </div>
+
+                        <div class="grid-item">
+                            <h3 class="hover-trigger">Digital Archaeology</h3>
+                            <div class="hover-box" style="right: -220px; top: 0;">
+                                <p>Tools and resources for exploring digital history and lost data.</p>
+                            </div>
+                            <ul>
+                                <li><a href="https://dangeru.us/all">Hidden Forums</a></li>
+                                <li><a href="https://cyberneticzoo.com/">Cybernetic History</a></li>
+                                <li><a href="https://neural.it/">Neural Interface</a></li>
+                                <li><a href="https://100r.co/site/uxn.html">UXN Protocol</a></li>
+                            </ul>
+                        </div>
+
+                        <div class="grid-item">
+                            <h3 class="hover-trigger">Research Protocols</h3>
+                            <div class="hover-box" style="left: -220px; top: 0;">
+                                <p>Advanced research tools and methodologies for digital exploration.</p>
+                            </div>
+                            <ul>
+                                <li><a href="https://manytools.org/hacker-tools/">ASCII Manipulation</a></li>
+                                <li><a href="https://adelfaure.net/">Terminal Graphics</a></li>
+                                <li><a href="https://playphrase.me/#/search">Language Processing</a></li>
+                                <li><a href="https://futuretools.io/">AI Integration</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="floating-container">
+                    <div class="wiki-section">
+                        <h2 class="hover-trigger">Knowledge Base</h2>
+                        <div class="hover-box" style="right: -220px; top: 0;">
+                            <p>Classified information repository.</p>
+                        </div>
+                        
+                        <div class="wiki-entry floating">
+                            <h3>Digital Archaeology Protocols</h3>
+                            <p>Recovery and preservation methods for digital artifacts from the early network era.</p>
+                            <div class="wiki-meta">Last Updated: 2024.03.15 | Access Level: 2</div>
+                        </div>
+
+                        <div class="wiki-entry floating">
+                            <h3>Lost Net Art Recovery</h3>
+                            <p>Documentation of vanished network-based artworks and restoration procedures.</p>
+                            <div class="wiki-meta">Last Updated: 2024.03.14 | Access Level: 3</div>
+                        </div>
+
+                        <div class="wiki-entry floating">
+                            <h3>Cyberdelic Protocols</h3>
+                            <p>Analysis of technopsychedelic phenomena in early network culture.</p>
+                            <div class="wiki-meta">Last Updated: 2024.03.13 | Access Level: 4</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span id="system-status">SYSTEM: OPERATIONAL</span>
+        <span id="connection-status">PING: 23ms</span>
+        <span id="encryption-status">ENCRYPTION: ACTIVE</span>
+    </div>
+
+    <div class="virtual-pet-container">
+        <pre id="virtual-pet" class="virtual-pet"></pre>
+    </div>
+
+    <div class="hud-container">
+        <div class="hud-menu">
+            <div class="hud-menu-header">System Logs</div>
+            <div class="hud-menu-content">
+                <ul>
+                    <li>Log Entry 1</li>
+                    <li>Log Entry 2</li>
+                    <li>Log Entry 3</li>
+                </ul>
+            </div>
+        </div>
+        <div class="hud-menu">
+            <div class="hud-menu-header">User Activity</div>
+            <div class="hud-menu-content">
+                <ul>
+                    <li>User 1: Active</li>
+                    <li>User 2: Idle</li>
+                    <li>User 3: Offline</li>
+                </ul>
+            </div>
+        </div>
+        <div class="hud-menu">
+            <div class="hud-menu-header">Network Status</div>
+            <div class="hud-menu-content">
+                <ul>
+                    <li>Node 1: Online</li>
+                    <li>Node 2: Offline</li>
+                    <li>Node 3: Online</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-container">
+        <div class="profile-menu">
+            <div class="profile-menu-header">Profile Information</div>
+            <div class="profile-menu-content">
+                <ul>
+                    <li>Username: User123</li>
+                    <li>Rank: Alpha</li>
+                    <li>Access Level: 3</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="secret-popup-container">
+        <div id="secret-popup" class="secret-popup">
+            <div class="secret-popup-content">
+                <h3>Secret Information</h3>
+                <p>You've discovered a hidden message!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Three.js background with improved particle system
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('threejs-container').appendChild(renderer.domElement);
+
+        // Create enhanced particle system
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 2000; // Increased particle count
+        const posArray = new Float32Array(particlesCount * 3);
+        const velocityArray = new Float32Array(particlesCount * 3);
+
+        for(let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 100;
+            velocityArray[i] = (Math.random() - 0.5) * 0.1;
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.005,
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // Add geometric shapes
+        const geometries = [];
+        for(let i = 0; i < 5; i++) {
+            const geometry = new THREE.IcosahedronGeometry(Math.random() * 2 + 1, 0);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 20
+            );
+            scene.add(mesh);
+            geometries.push(mesh);
+        }
+
+        camera.position.z = 30;
+
+        // Enhanced animation loop
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - window.innerWidth / 2) * 0.0002;
+            mouseY = (event.clientY - window.innerHeight / 2) * 0.0002;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update particles
+            const positions = particlesGeometry.attributes.position.array;
+            for(let i = 0; i < positions.length; i += 3) {
+                positions[i] += velocityArray[i];
+                positions[i + 1] += velocityArray[i + 1];
+                positions[i + 2] += velocityArray[i + 2];
+
+                // Reset particles that go too far
+                if(Math.abs(positions[i]) > 50) positions[i] = (Math.random() - 0.5) * 100;
+                if(Math.abs(positions[i + 1]) > 50) positions[i + 1] = (Math.random() - 0.5) * 100;
+                if(Math.abs(positions[i + 2]) > 50) positions[i + 2] = (Math.random() - 0.5) * 100;
+            }
+            particlesGeometry.attributes.position.needsUpdate = true;
+
+            // Rotate based on mouse position
+            particlesMesh.rotation.x += mouseY;
+            particlesMesh.rotation.y += mouseX;
+
+            // Animate geometric shapes
+            geometries.forEach(mesh => {
+                mesh.rotation.x += 0.001;
+                mesh.rotation.y += 0.001;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Enhanced dream fragment system
+        const dreamFragments = [
+            "Digital echoes in the void...",
+            "Quantum entangled memories...",
+            "Cybernetic dreams of electric sheep...",
+            "Binary whispers from the deep net...",
+            "Ghost signals in the machine...",
+            "Encrypted thoughts in the datastream...",
+            "Neural pathways through digital space...",
+            "Fragments of forgotten protocols...",
+            "Echoes of ancient network rituals...",
+            "Whispers from the silicon void..."
+        ];
+
+        document.getElementById('add-dream').addEventListener('click', () => {
+            const fragmentContainer = document.getElementById('dream-fragments');
+            const newFragment = document.createElement('div');
+            newFragment.className = 'dream-fragment';
+            newFragment.textContent = dreamFragments[Math.floor(Math.random() * dreamFragments.length)];
+            
+            // Enhanced animation
+            newFragment.style.opacity = '0';
+            newFragment.style.transform = 'translateX(-20px)';
+            fragmentContainer.appendChild(newFragment);
+            
+            requestAnimationFrame(() => {
+                newFragment.style.transition = 'all 0.5s ease-out';
+                newFragment.style.opacity = '1';
+                newFragment.style.transform = 'translateX(0)';
+            });
+
+            if (fragmentContainer.children.length > 3) {
+                const oldestFragment = fragmentContainer.children[0];
+                oldestFragment.style.opacity = '0';
+                oldestFragment.style.transform = 'translateX(-20px)';
+                setTimeout(() => fragmentContainer.removeChild(oldestFragment), 500);
+            }
+        });
+
+        // Enhanced system status updates
+        function updateSystemStatus() {
+            const statuses = ['OPERATIONAL', 'SCANNING', 'PROCESSING', 'ANALYZING', 'DECRYPTING'];
+            const status = statuses[Math.floor(Math.random() * statuses.length)];
+            const systemStatus = document.getElementById('system-status');
+            systemStatus.textContent = `SYSTEM: ${status}`;
+            systemStatus.style.color = status === 'OPERATIONAL' ? '#ffffff' : '#00ff00';
+            
+            const ping = Math.floor(Math.random() * 100) + 10;
+            document.getElementById('connection-status').textContent = `PING: ${ping}ms`;
+            
+            if (Math.random() < 0.1) {
+                const encStatus = document.getElementById('encryption-status');
+                encStatus.textContent = 'ENCRYPTION: ROTATING KEYS';
+                encStatus.style.color = '#ff0000';
+                setTimeout(() => {
+                    encStatus.textContent = 'ENCRYPTION: ACTIVE';
+                    encStatus.style.color = '#ffffff';
+                }, 2000);
+            }
+        }
+        setInterval(updateSystemStatus, 5000);
+
+        // Update clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock-widget').textContent = now.toLocaleTimeString();
+        }
+        setInterval(updateClock, 1000);
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Active users simulation
+        let activeUsers = 23;
+        setInterval(() => {
+            activeUsers += Math.floor(Math.random() * 3) - 1;
+            if (activeUsers < 1) activeUsers = 1;
+            document.getElementById('active-users').textContent = `Active Users: ${activeUsers}`;
+        }, 10000);
+
+        // ASCII Art for the Virtual Pet with different emotes
+        const petAscii = [
+            `
+ /\\_/\\  !!!
+( o.o )   
+> -::-<   
+            `,
+            `
+ /\\_/\\  <3
+( ^.^ ) 
+> -::-<  
+            `,
+            `
+ /\\_/\\  ~~
+( >.< )
+ > ~ < 
+            `,
+            `
+ /\\_/\\ ...
+( V.V )
+ > ^ < 
+            `,
+            `
+ /\\_/\\ ???
+( X.X )
+ > ^ < 
+            `
+        ];
+
+        // Virtual Pet Element
+        const virtualPet = document.getElementById('virtual-pet');
+
+        // Function to display the pet with a random emote
+        function displayPet() {
+            const randomIndex = Math.floor(Math.random() * petAscii.length);
+            virtualPet.textContent = petAscii[randomIndex];
+            virtualPet.style.opacity = '1';
+            setTimeout(hidePet, Math.random() * 10000 + 5000); // Random time to hide the pet
+        }
+
+        // Function to hide the pet
+        function hidePet() {
+            virtualPet.style.opacity = '0';
+            setTimeout(displayPet, Math.random() * 10000 + 5000); // Random time to display the pet again
+        }
+
+        // Initial display of the pet
+        displayPet();
+
+        // Secret Popup Element
+        const secretPopup = document.getElementById('secret-popup');
+
+        // Function to show the secret popup
+        function showSecretPopup() {
+            secretPopup.style.display = 'block';
+            setTimeout(() => {
+                secretPopup.style.display = 'none';
+            }, 5000); // Hide the popup after 5 seconds
+        }
+
+        // Add click event listeners to the geometric shapes
+        geometries.forEach(mesh => {
+            mesh.userData.clickable = true;
+            mesh.addEventListener('click', () => {
+                if (mesh.userData.clickable) {
+                    showSecretPopup();
+                    mesh.userData.clickable = false; // Disable further clicks on this shape
+                    setTimeout(() => {
+                        mesh.userData.clickable = true; // Re-enable clicks after 10 seconds
+                    }, 10000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
